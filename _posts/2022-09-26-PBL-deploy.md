@@ -12,7 +12,7 @@ week: 6
 ---
 
 ## Deployment Overview
-Deploying a Web Application enables a Server and Web Application to be available to users on the Internet. Development Operations (DevOps) is understanding the tools and service used to enable the Web Application on the Internet.  This process can use many different cloud services, as well as choice of many different tools.  Here is an overview of what is covered in the procedure.
+Deploying a Web Application enables a Server and Web Application to be available to users on the Internet. Development Operations (DevOps) is understanding the tools and service used to enable the Web Application on the Internet.  This process can use many different cloud services, as well as choice of many different tools.  Here is an overview of what is covered in this procedure.
 
 - EC2: Amazon Web Services is a cloud computing platform that the PUSD district has provided for their students to serve our Web Application.
 - GitHub: The leading open platform to share a code across the Internet.
@@ -22,7 +22,7 @@ Deploying a Web Application enables a Server and Web Application to be available
 - DNS: Natively, the web works off of IP addresses.  Domain Name Services (DNS) allows the assignment of a friendly name to a Web Server.  This name is built into Nginx/Certbot configuration files.  Freenom is the cloud service described in this blog and has been used to register the nighthawkcodingsociety.com domain.
 
 ### Key/Values required as you go through these procedures
-Listed are Keys, you need to obtain "values" specific to your Web Application setup.  It is important that you recognize the sample "values" as you work through these procedures, then replace them with the "values" that are specific to your use case.
+Listed are Keys, you need to obtain "values" specific to your Web Application setup.  It is important that you recognize the sample "values" as you work through these procedures, then replace them with the "values" that are specific to your Web Application use case.
 
 - GitHub HTTPS link:
 - IAM user:
@@ -48,8 +48,19 @@ Preparing and AWS EC2 instance is the process of creating a cloud computer.  Thi
     - At the end of this process you need to "Connect to Instance". This will provide you a terminal like experience.
 
 
-## Deployment Process
+## Deployment Process 
+> Deployment begins with terminal connections.   It is necessary to run commands to setup files to enable your Web Application to run on the Internet.
+
+### Connect to EC2 through cloud
 > Connect to an Ubuntu EC2 instance on AWS and then begin the system and software setup.
+- Select your machine and press "Connect" at top middle.
+![AWS Connect]({{site.baseurl}}/images/aws_connect.png)
+- On next screen ensure things are lined "EC2 Instance Connect" and press "Connect" at bottom.
+![AWS2 Connect]({{site.baseurl}}/images/aws_connect2.png)
+- Only if this fails you will need to connect from our Anaconda terminal, we need pem file so place it in your home directory.
+![AWS SSH]({{site.baseurl}}/images/aws_ssh.png)
+- Either connection should work at home, school WIFI may be blocking, I have been trying to get this open.  A Hot spot or [VPN]({{site.baseurl}}/tutorial/vpn) will solve connection errors.
+
 
 ### Update, Upgrade, and Install packages
 Terminal commands are shown, these commands will be run from Terminal after you connect to your EC2 instance.  It is advised that you try to comprehend and learn these commands as you go through these procedures.  Understanding steps is how you become a DevOps Engineer.  
@@ -58,6 +69,9 @@ Terminal commands are shown, these commands will be run from Terminal after you 
 
 ```bash
 $ sudo apt update; sudo apt upgrade
+$ sudo apt install docker
+$ sudo apt install docker-compose -y
+$ sudo apt install html2text
 $ sudo apt install python3-pip nginx
 $ sudo pip3 install virtualenv
 ```
@@ -70,6 +84,8 @@ $ cd
 $ git clone https://github.com/nighthawkcoders/flask_portfolio.git
 $ cd flask_portfolio
 ```
+
+* Clone needs to be repeated for each Web application on the EC2 instance (Team repository and each individual repository).  If repo is named the same use option parameter at the end of clone command ```git clone https://github.com/nighthawkcoders/flask_portfolio.git flask_portfolio_john```, then ```cd flask_portfolio_john```
 
 ### Test Web Service
 > These steps will require you to understand a few new commands that will not be part of final deployment process.  However, these commands will help you understand machine dependencies and validate your requirements.txt for completeness.
@@ -111,8 +127,7 @@ ModuleNotFoundError: No module named 'flask'
 ### Create Dockerfile to run Web Service
 > A Dockerfile is a configuration used to run the Web Service.  This is placed in a file called Dockerfile.  It is best to add this to VS Code and pull it, or you can update in place with nano, vi, or vim editor and use command line commands to push it into your repository.  The Dockerfile should be considered Code!
 
-> Edit the Dockerfile
-
+* Edit the Dockerfile
 ```bash
 $ sudo nano Dockerfile
 ```
@@ -124,8 +139,8 @@ WORKDIR /app
 # --- Update environment and install python and pip ---
 RUN apt-get update && apt-get upgrade -y && \
     apt-get install -y python3 python3-pip git
-# --- This should be the repository you created last week ---
-RUN git clone https://github.com/nighthawkcoders/flask_portfolio /app
+# --- Copy repo you updated with clone or pull ---
+COPY . /app
 # --- Install project specific dependencies ---
 RUN pip3 install --no-cache-dir -r requirements.txt
 RUN pip3 install gunicorn
@@ -141,9 +156,11 @@ CMD [ "gunicorn", "main:app" ]
 ### Create docker-compose file share Web Service
 > A docker-compose file is a configuration used to share your Docker Web Service and resources with the Linux system.  This file enable Linux to have access to the container and the persistent data application via the /volumes location.  
 - Once again it is best to add the docker-compose.yml in VS Code and pull it.  You can edit it on the machine itself using vi, vim, or nano.
+- The ```image:``` needs to have unique name for each application on server (ie flask_john_v1)
+- The ```ports:``` left value 8086 needs to be unique for each application on server (ie 8087:8080, 8088:8080, etc)
+- Change ```device:``` to match path to volumes directory of your project.  Verify this location is correct typing ```ls /home/ubuntu/flask_portfolio/volumes```  this should list files ```sqlite.db  uploads```
 
-> Edit docker-compose.yml
-
+* Edit docker-compose.yml
 ```bash
 $ sudo nano docker-compose.yml
 ```
@@ -172,34 +189,30 @@ volumes:
 ### Running Docker using docker-compose.yml
 > At this point, it is best to review complete files on GitHub and for Docker and docker-compose: https://github.com/nighthawkcoders/flask_portfolio.   Review the Key/Values mentioned in this document.  Make sure your Docker and docker-compose files a personalized to your project.
 
+* Ensure install of docker, docker-compose installed from earlier procedures
+```bash
+$ sudo apt install docker
+$ sudo apt install docker-compose -y
+```
+
 * Make sure you are in project directory
 ```bash
 $ cd ~/flask_portfolio/
 ```
 
-> install docker-compose
-
-```bash
-$ sudo apt install docker-compose -y
-```
-
-> Run docker-compose
-
+* Run docker-compose
 ```bash
 $ sudo docker-compose up -d
 ```
 
 * Output from docker-compose.  When running this command, docker-compose will run all the Docker steps and build a Web Application running in a Docker container, a virtual environment.
-
 ```bash
 Creating network "flask_portfolio_default" with the default driver
 Building web
 Step 1/9 : FROM docker.io/python:3.9
  ---> d0ce03c9330c
 Step 2/9 : WORKDIR /app
-
 .... LOTS of STEPs and OUTPUT ...
-
 Successfully built 68d68ad9699b
 Successfully tagged flask_port_v1:latest
 WARNING: Image for service web was built because it did not already exist. To rebuild this image you must use `docker-compose build` or `docker-compose up --build`.
@@ -208,18 +221,18 @@ Creating flask_portfolio_web_1 ... done
 
 ### Verifying Web Application via Docker commands
 > Here is a look at some of the commands behind the scenes.  None of these are required to get things working, but show the results of the Docker and docker-compose.yml files and commands.
-- docker-compose ps   The running Web process, "ps" is a linux command or option that provides information related to the processes on a system.  Look at headings in relation to outputs of the docker-compose process.
 
+* docker-compose ps  View the running Web process, "ps" is a linux command or option that provides information related to the processes on a system.  Look at name and ports in relation to outputs of the docker-compose process and settings in docker-compose.yml file.
 ```bash
- ubuntu@ip-172-31-1-138:~/flask_portfolio$ sudo docker-compose ps
+$ sudo docker-compose ps
         Name                 Command        State                    Ports                  
 --------------------------------------------------------------------------------------------
 flask_portfolio_web_1   gunicorn main:app   Up      0.0.0.0:8086->8080/tcp,:::8086->8080/tcp
 ```
 
-- docker ps   A more comprehensive list of all the docker processes on the system.  In this process reports, many of the alternate projects running on this AWS server are show.  The flask_portfolio_web_1 process is the items specific to this tutorial.
+* docker ps  View a more comprehensive list of all the docker processes on the system.  In this process reports, many of the alternate projects running on this AWS server are show (ie your Team Members).  You should be able to identify your IMAGE and PORTS, as they should be unique according to your docker-compose.yml file.
 ```bash
-buntu@ip-172-31-1-138:~/flask_portfolio$ sudo docker ps
+$ sudo docker ps
 CONTAINER ID   IMAGE           COMMAND                  CREATED          STATUS          PORTS                                       NAMES
 749a93bc11ce   flask_port_v1   "gunicorn main:app"      45 minutes ago   Up 45 minutes   0.0.0.0:8086->8080/tcp, :::8086->8080/tcp   flask_portfolio_web_1
 89155782b853   java_springv1   "java -jar target/sp…"   6 days ago       Up 6 days       0.0.0.0:8085->8080/tcp, :::8085->8080/tcp   spring_portfolio_web_1
@@ -229,9 +242,9 @@ CONTAINER ID   IMAGE           COMMAND                  CREATED          STATUS 
 abd77b8e77af   java_csav2      "java -jar target/cs…"   5 weeks ago      Up 5 weeks      0.0.0.0:8081->8080/tcp, :::8081->8080/tcp   nighthawk_csa_web_1
 ```
 
-- docker images   This lists all of the docker images, or containers, that are used to serve the process shown above.  The flask_port_v1 is the image created from the Docker file created in this tutorial.  The image contains the running Web application.
+* docker images   This lists all of the docker images, or containers, that are used to serve the process shown above.  The flask_port_v1 is the REPOSITORY is named in docker-compose.yml.  The IMAGE ID is container for the running Web application.
 ```bash
-ubuntu@ip-172-31-1-138:~/flask_portfolio$ sudo docker images
+$ sudo docker images
 REPOSITORY      TAG             IMAGE ID       CREATED          SIZE
 flask_port_v1   latest          68d68ad9699b   51 minutes ago   1.01GB
 java_springv1   latest          e85a584b1836   6 days ago       523MB
@@ -244,28 +257,39 @@ alpine          latest          e66264b98777   8 weeks ago      5.53MB
 openjdk         16-alpine3.13   2aa8569968b8   17 months ago    324MB
 ```
 
-### Preparing the Docker Web Application for Internet Access
-There are a couple of steps to this preparation. We need to direct the internet to the Server running the Web Application, this is done using Domain Name Service (DNS).   After being directed to the Web Server, the server needs to respond to the Hyper Text Transfer Protocol (HTTP), this will be manged by Nginx.   Additionally, we will be required to support Secure HTTP (HTTPS), a utility called Certbot will augment our Nginx configuration with a certificate.
+* docker volume ls   This list volume names are the locations where application stores files that that the developer wants to keep.  The volume name is specified in the docker-compose.yml file.
+```bash
+$ sudo docker volume ls
+DRIVER    VOLUME NAME
+local     flask_portfolio_persistent_volume
+local     nighthawk_csa_persistent_volume
+local     nighthawk_csp_persistent_volume
+local     spring_portfolio_persistent_volume
+```
 
-#### DNS provider and setup
-Each student scrum team is required to learn how to obtain a DNS provider and setup an independent domain.  However, the final set up will be using a Subdomain under nighthawkcodingsociety.com.
+### Testing localhost endpoint
+Verify everything is working with your docker configurations.  
 
-A picture is included to show key elements in setting up a domain with a DNS provider.  The nighthawkcodingsociety.com is using Freenom as its service provider.  As you build your own DNS server you will need to obtain your own IP address and domain.
+* Local Test of Web Application Endpoint.  This should return HTML related to the home page of your Web site.  If this fails, you need to review Docker and docker-compose configurations.  ```Failed to connect``` means you need to review your port assignments in docker-compose.yml and the ```docker-compose ps``` outputs above.
+```bash
+$ curl http://localhost:8086
+```
 
-This illustration is dependent on...
+* More readable view of Web Application Endpoint. This requires ```sudo apt install html2text```.  This output is a form of Web Scrapping, as it pull text out of the HTML and makes it easier for us to read and identify the content.
+```bash
+$ curl http://localhost:8086 | html2text
+```
+
+* Congrats.  If you are to this point you are successfully running your Web Application with Docker and verifying that it is running with Curl.
+
+## Test preparation for Docker Web Application using IP for Internet Access
+Each student scrum team will perform Nginx test and verify Group Web Project is working on EC2 instance.  This step is can only support a single Web Application at a time.
+
+This Step is dependent on...
 - EC2 Public IPs: 3.233.212.71
-- DNS Name: nighthawkcodingsociety.com
-- DNS Subdomain name(s): battleship.nighthawkcodingsociety.com. cowboys.nighthawkcodingsociety.com
+- Docker Port: 8086
 
-A minimum configuration will have the two "A" type definitions using you Public IP address.  These two are resolved with a single Web Application.  The "CNAME" type is used for subdomains, these will resolve to a different Web Application.
-
-<img alt="Setup a Domain" src="{{site.baseurl}}/images/freenom.png" title="DNS Provider">
-
-
-#### Nginx install, configuration, and services
-Each student scrum team will perform Nginx installation and setup on an AWS EC2 test server.  The final configuration will be on AWS server managed by Teachers or Student DevOps Engineers.
-
-Enable Nginx to retrieve Python Web Application on internet request (Reverse Proxy)! Make a server file located at /etc/nginx/sites-available/nighthawk.
+Enable Nginx to retrieve default Web Application using IP Address from internet request (Reverse Proxy)!
 
 * Install Nginx on Ubuntu servers
 ```bash
@@ -277,12 +301,101 @@ $ sudo apt install nginx
 $ cd /etc/nginx/sites-available
 ```
 
-* Open editor to Create your own "Nginx server configuration".  For clarity, name should be after domain or subdomain.
+* Open editor to Create your own "Nginx test configuration".  
+```bash
+$ sudo nano test
+```
+
+* Edit your own Nginx server configuration making modifications to:
+    * IP Address: 3.233.212.71
+    * docker-compose, proxy pass Port: 8086
+    
+```nginx
+server {
+    listen 80;
+    listen [::]:80;
+    server_name 3.233.212.71;
+
+    location / {
+        proxy_pass http://localhost:8086;
+        # Simple requests
+        if ($request_method ~* "(GET|POST)") {
+                add_header "Access-Control-Allow-Origin"  *;
+        }
+
+        # Preflight requests
+        if ($request_method = OPTIONS ) {
+                add_header "Access-Control-Allow-Origin"  *;
+                add_header "Access-Control-Allow-Methods" "GET, POST, OPTIONS, HEAD";
+                add_header "Access-Control-Allow-Headers" "Authorization, Origin, X-Requested-With, Content-Type, Accept";
+                return 200;
+        }
+    }
+}
+```
+
+### Activating Nginx configuration
+* Activate/enabled Nginx server configuration:
+  * nginx configuration file: test
+```bash
+$ sudo ln -s /etc/nginx/sites-available/test /etc/nginx/sites-enabled
+$ sudo nginx -t
+```
+
+* If there are errors, something is wrong...
+    * Perhaps you are missing semicolon at the end of server)name or proxy_pass lines.
+    * Perhaps link to file in sites-enabled is bad as a result of bad syntax in ```ln -a``` command.  
+        * There are two directories ```/etc/nginx/sites-available``` and ```/etc/nginx/sites-enabled```.  
+        * The 1st is for preliminary editing, the second is for activation.  Perform ```ls``` in ```/etc/nginx/sites-enabled``` and make sure all the names look correct.  
+        * Correct by ```rm``` of mistake in ```/etc/nginx/sites-enabled``` without deleting original file in ```/etc/nginx/sites-available```.  Then repeat ```ln -s``` command.
+
+* If there are no errors, restart NGINX so the server to activate ```/etc/nginx/sites-enabled``` files:
+```bash
+$ sudo systemctl restart nginx
+```
+
+### Testing HTTP endpoint
+> When completing this section, you will show that the Internet is resolving your Web application and port from an IP address (aka reverse proxy).  
+
+* Verify AWS Web application again.  Make sure curl is still working on local machine.  Make sure endpoint you placed in Nginx test file match.
+```bash
+$ curl http://localhost:8086
+```
+* Now test public IP on the internet.  Go to a browser anywhere in the world and type your IP address:
+```
+http://3.233.212.71
+``` 
+   * Note.  Address is Unsecure and you are using IP address versus Domain.
+   * Timeout problem.  This means something is wrong with EC2 Public IP.
+   * Nginx Default page.  This means Nginx is working, but something is wrong with you Nginx test configuration.
+   * Broken Gateway.  This means Nginx is working, but something is wrong with Web Application endpoint on machine. This requires you to look at port configuration OR restart Docker.
+
+> Congratulations.  If you have arrived at this point you now have capability to access your team Web Application from the Internet.  Hurray!!!
+
+## Final preparation the Docker Web Application using DNS for Internet Access
+There are additional steps to this preparation. We need to direct the internet to the AWS server running the Web Application, this is done using Domain Name Service (DNS).   After being directed to the Web Server, the server needs to respond to the HTTP (Hyper Text Transfer Protocol) request.  The proxy of HTTP to your Web Application is manged by Nginx.   Finally, we will Secure HTTP (HTTPS), with a utility called Certbot.
+### DNS provider and setup
+Each student scrum team is required to learn how to obtain a DNS provider and setup an independent domain.
+
+A picture is included to show key elements in setting up a domain with a DNS provider.  The nighthawkcodingsociety.com is using Freenom as its service provider.  As you build your own DNS endpoint, you will need to obtain your own IP address mapped to a Domain.
+
+This Freenom illustration is dependent on...
+- DNS Name: nighthawkcodingsociety.com
+- DNS Subdomain name(s): battleship.nighthawkcodingsociety.com. cowboys.nighthawkcodingsociety.com
+
+A minimum configuration will have the two "A" type definitions using you Public IP address.  These two are resolved with a single Web Application.  The "CNAME" type is used for subdomains, these will resolve to a different Web Application.
+
+Setup DNS mapping to your Public IP address now!!!  This is needed to complete Nginx and Certbot configurations below.  You will not be able to proceed until you have setup 'A' record.
+
+<img alt="Setup a Domain" src="{{site.baseurl}}/images/freenom.png" title="DNS Provider">
+
+
+* Open editor to Create your own "Nginx Web Application configuration" for your group project.  This looks very similar to test configurations, but the change is the Domain names.   These Domain names must be created through DNS provider and you must setup 'A' entries in DNS for them to work.   For clarity, the name ```nighthawk``` should reflect your application name, domain or subdomain.  The name needs to be unique for each web application (ie john_nighthawk for john.nighthawk.com).
 ```bash
 $ sudo nano nighthawk
 ```
 
-* Edit your own Nginx server configuration making modifications to <mark>primary server</mark> file, (1 is required):
+* Edit your own Nginx server configuration making modifications:
     * DNS Name(s): nighthawkcodingsociety.com www.nighthawkcodingsociety.com
     * docker-compose, proxy pass Port: 8086
 
@@ -310,9 +423,9 @@ server {
 }
 ```
 
-* Or, or in addition, edit your own Nginx server configuration making modifications to <mark>subdomain</mark> file (0 to many):
+* Or, or in addition, edit your own Nginx server configuration making modifications to <mark>subdomain</mark> file (0 to many).  These Domain names must be created through DNS provider and you must setup 'A' or 'CNAME' entries in DNS for them to work:
     * DNS Name(s): flask.nighthawkcodingsociety.com
-    * docker-compose, proxy pass Port: 8086
+    * docker-compose, proxy pass Port: 8087
 
 ```nginx
 server {
@@ -321,7 +434,7 @@ server {
     server_name flask.nighthawkcodingsociety.com;
 
     location / {
-        proxy_pass http://localhost:8086;
+        proxy_pass http://localhost:8087;
         # Simple requests
         if ($request_method ~* "(GET|POST)") {
                 add_header "Access-Control-Allow-Origin"  *;
@@ -350,21 +463,24 @@ $ sudo nginx -t
 $ sudo systemctl restart nginx
 ```
 
-#### Testing HTTP endpoint
-Before finishing, this is a good opportunity to test everything you have done.  
+### Testing HTTP endpoint
+Before finishing, this is a good opportunity to review everything you have done.  
 
-* Direct Test of Web Application Endpoint.  This should return HTML related to the home page of the Web site.  If this fails, you need to review Docker and docker-compose configurations.
+* Make sure curl is still working on local machine.
+
 ```bash
 $ curl http://localhost:8086
+$ curl http://localhost:8087
+etc
 ```
 
-* Testing unsecure HTTP endpoint on the internet.  Go to a browser an type your DNS domain: ```http://nighthawkcodingsociety.com```. 
+* Now test unsecure HTTP endpoint on the internet.  Go to a browser anywhere and type your DNS domain: ```http://nighthawkcodingsociety.com``` or ```http://flask.nighthawkcodingsociety.com```. 
    * Timeout.  This means something is wrong with EC2 Public IP.
    * Nginx Default page.  This means DNS is working, but something is wrong with you Nginx configuration.
    * Broken Gateway.  This means Nginx is working, but something is wrong with Web Application endpoint on machine, if this fails something is wrong with Web Application.  This requires you to look at Docker and docker-compose configuration.
    
 
-#### Certbot install and configuration
+### Certbot install and configuration
 Each student scrum team will learn Certbot on on AWS EC2 test server, establish working https web application.  The final configuration will be on AWS server managed by Teachers or Student DevOps Engineers.
 
 ```bash
@@ -456,7 +572,7 @@ IMPORTANT NOTES:
    Donating to EFF:                    https://eff.org/donate-le
 ```
 
-## Update Deployment
+## Update Deployment, this process is after you change code
 > This procedure is a very short, as much of the deployment performed is persistent on your EC2/Ubuntu.  
 
 ### Goto Project directory 
