@@ -6,9 +6,9 @@ title: Big Idea 2 'Binary Numbers'
 description: taking a look at binary abstractions and logic gates
 permalink: /collegeboard/binary
 image: /images/apcsp.png
-categories: [1.D, 2.B, 3.C]
+categories: [1.D, 2.B, 3.C, C4/4]
 type: ap
-week: 8
+week: 10
 ---
 
 # Binary Abstraction and Logic Gates
